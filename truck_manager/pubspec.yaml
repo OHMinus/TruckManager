@@ -1,0 +1,31 @@
+name: truck_manager
+description: A sample command-line application.
+version: 1.0.0
+# homepage: https://www.example.com
+
+environment:
+  sdk: '^3.0.5'
+
+dependencies:
+  http: ^1.0.0
+  googleapis: ^11.0.0
+  googleapis_auth: ^1.4.0
+  args: ^2.4.2
+  json_annotation: ^4.8.1
+  pdf: ^3.10.6
+  uuid: ^4.4.0
+  image: ^4.2.0
+  path: ^1.8.3
+  archive: ^3.4.1
+  mockito: ^5.4.2
+  dotenv: ^3.0.0
+  # firebase_admin: ^0.1.0-dev.1 # Commented out due to null safety incompatibility
+  dart_pdf_reader: ^0.5.1
+  intl: ^0.19.0
+
+dev_dependencies:
+  lints: ^2.0.0
+  test: ^1.21.0
+  build_runner: ^2.4.6
+  json_serializable: ^6.7.1
+

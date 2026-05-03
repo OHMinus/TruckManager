@@ -1,0 +1,66 @@
+name: Send LINE Notification
+
+on:
+  schedule:
+    - cron: '30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils zip # zipを追加
+
+      # 1. Node.js 環境をセットアップ
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20  # ここを node-version に修正
+
+      # 2. msdf-bmfont-xml をグローバルにインストール
+      - name: Install msdf-bmfont
+        run: npm install -g msdf-bmfont-xml
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.8'
+          channel: 'stable'
+
+      - name: Run
+        run: |
+          cd truck_manager
+          mkdir -p $TMP_DIR $FONT_DIR $CONFIG_DIR
+          dart pub get
+          dart run lib/app.dart
+        env:
+          TMP_DIR: ${{ github.workspace }}/tmp
+          FONT_DIR: ${{ github.workspace }}/fonts
+          CONFIG_DIR: ${{ github.workspace }}/config
+          FONT_URL : ${{ secrets.FONT_URL }}
+
+          OAUTH_ID: ${{ secrets.OAUTH_ID }}
+          OAUTH_SECRET: ${{ secrets.OAUTH_SECRET }}
+          G_REFRESH_TOKEN: ${{ secrets.G_REFRESH_TOKEN }}
+          GOOGLE_SERVICE_CRED: ${{secrets.GOOGLE_SERVICE_CRED}}
+
+          LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
+          LINE_TARGET_USER_ID: ${{ secrets.LINE_TARGET_USER_ID }}
+
+          SHIFT_SHEET_ID: ${{ secrets.SHIFT_SHEET_ID }}
+
+          TARGET: "${{ secrets.TARGET }}"
+
+          GAS_WEB_HOOK: ${{ secrets.GAS_WEB_HOOK }}
+
+          GDRIVE_UPLOAD_FOLDER_ID : ${{ secrets.GDRIVE_UPLOAD_FOLDER_ID }}
+          GEMINI_API_KEY : ${{ secrets.GEMINI_API_KEY }}
+          PROJECT_ID : ${{ secrets.PROJECT_ID }}
+
+          FIRESTORE_DB_NAME : ${{ secrets.FIRESTORE_DB_NAME }}
+          FIRESTORE_COLLECTION : ${{ secrets.FIRESTORE_COLLECTION }}
