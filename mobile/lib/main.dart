@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -41,7 +41,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final AiService _aiService = AiService();
   final LineService _lineService = LineService();
 
-  File? _selectedImage;
+  XFile? _selectedImage;
   InvoiceData? _extractedData;
   bool _isLoading = false;
 
@@ -49,7 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        _selectedImage = File(image.path);
+        _selectedImage = image;
         _extractedData = null; // Reset data when new image is picked
       });
     }
@@ -113,11 +113,17 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               if (_selectedImage != null)
-                Image.file(
-                  _selectedImage!,
-                  height: 300,
-                  fit: BoxFit.contain,
-                )
+                kIsWeb
+                    ? Image.network(
+                        _selectedImage!.path,
+                        height: 300,
+                        fit: BoxFit.contain,
+                      )
+                    : Image.file(
+                        File(_selectedImage!.path),
+                        height: 300,
+                        fit: BoxFit.contain,
+                      )
               else
                 const Text('No image selected.'),
               const SizedBox(height: 20),

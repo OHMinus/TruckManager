@@ -1,12 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import '../models/invoice_data.dart';
 
 class AiService {
   static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
 
-  Future<InvoiceData?> extractInvoiceData(File imageFile) async {
+  Future<InvoiceData?> extractInvoiceData(XFile imageFile) async {
     if (_geminiApiKey.isEmpty) {
       print("Error: GEMINI_API_KEY is not set in the environment.");
       return null;
