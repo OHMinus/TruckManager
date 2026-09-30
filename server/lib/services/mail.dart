@@ -12,7 +12,9 @@ abstract class GmailService {
   Future<List<int>> fetchAttachment(String messageId, String attachmentId);
   Future<void> markAsRead(String id);
   Future<String?> GetOriginalSender(String id);
+  String? getPlainTextBody(gmail.Message message);
 }
+
 
 /// Gmail API との実際の通信を担うクラス
 class GmailServiceImpl implements GmailService {
@@ -119,5 +121,28 @@ class GmailServiceImpl implements GmailService {
 
     // 3. 見つからない場合は通常の From を返すか、null を返す
     return GetHeader(message, 'From');
+  }
+
+  @override
+  String? getPlainTextBody(gmail.Message message) {
+    String text = '';
+    if (message.payload?.parts != null) {
+      for (var part in message.payload!.parts!) {
+        if (part.mimeType == 'text/plain' && part.body?.data != null) {
+          try {
+            text += utf8.decode(base64Url.decode(part.body!.data!));
+          } catch (e) {
+            print('Error decoding body: $e');
+          }
+        }
+      }
+    } else if (message.payload?.body?.data != null) {
+      try {
+        text = utf8.decode(base64Url.decode(message.payload!.body!.data!));
+      } catch (e) {
+        print('Error decoding body: $e');
+      }
+    }
+    return text.isEmpty ? null : text;
   }
 }
