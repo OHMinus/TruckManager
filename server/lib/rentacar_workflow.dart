@@ -2,12 +2,14 @@ import 'package:truck_manager/services/line.dart';
 import 'package:truck_manager/services/mail.dart';
 import 'package:truck_manager/services/asset_loader.dart';
 import 'package:truck_manager/services/notify.dart';
+import 'package:truck_manager/services/firestore_service.dart';
 
 class RentACarWorkflow {
   final GmailService _gmail;
   final LineNotifyService _line;
+  final FirestoreService _firestore;
 
-  RentACarWorkflow(this._gmail, this._line);
+  RentACarWorkflow(this._gmail, this._line, this._firestore);
 
   Future<void> run() async {
     print('Rent-a-car workflow started.');
@@ -28,12 +30,21 @@ class RentACarWorkflow {
 
         if (body != null) {
           final parsedData = _parseEmailBody(body);
-          if (parsedData.isNotEmpty) {
+          if (parsedData['予約番号'] != '不明') {
             final flexContents = _createFlexMessageContents(parsedData);
             await _line.sendFlexMessage(
               to: targetUserId,
               altText: "レンタカー予約のお知らせ",
               contents: flexContents,
+            );
+
+            // Save to Firestore
+            String docId = parsedData['予約番号'] ?? DateTime.now().millisecondsSinceEpoch.toString();
+            if (docId == '不明') docId = DateTime.now().millisecondsSinceEpoch.toString();
+            await _firestore.saveDocument(
+              collectionId: "rentacar_bookings",
+              docId: docId,
+              data: parsedData,
             );
 
             // Mark as read if not in debug mode

@@ -130,7 +130,7 @@ class GmailServiceImpl implements GmailService {
       for (var part in message.payload!.parts!) {
         if (part.mimeType == 'text/plain' && part.body?.data != null) {
           try {
-            text += utf8.decode(base64Url.decode(part.body!.data!));
+            text += utf8.decode(base64Url.decode(base64Url.normalize(part.body!.data!)));
           } catch (e) {
             print('Error decoding body: $e');
           }
@@ -138,7 +138,7 @@ class GmailServiceImpl implements GmailService {
       }
     } else if (message.payload?.body?.data != null) {
       try {
-        text = utf8.decode(base64Url.decode(message.payload!.body!.data!));
+        text = utf8.decode(base64Url.decode(base64Url.normalize(message.payload!.body!.data!)));
       } catch (e) {
         print('Error decoding body: $e');
       }
