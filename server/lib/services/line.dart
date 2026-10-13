@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:googleapis/sheets/v4.dart';
 import 'package:http/http.dart' as http;
 import 'package:truck_manager/services/capsules.dart';
 import 'package:truck_manager/services/asset_loader.dart';
@@ -25,10 +24,57 @@ class LineNotifyService {
   String _safeValue(String? value) =>
       (value == null || value.isEmpty) ? ' ' : value;
 
+  /// 汎用的なFlex Message送信メソッド
+  Future<String> sendFlexMessage({
+    required String to,
+    required String altText,
+    required Map<String, dynamic> contents,
+  }) async {
+    if (channelAccessToken.isEmpty) {
+      throw Exception('LINEの認証情報（環境変数）が不足しています。');
+    }
+
+    final body = {
+      "to": to,
+      "messages": [
+        {
+          "type": "flex",
+          "altText": altText,
+          "contents": contents,
+        }
+      ]
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.line.me/v2/bot/message/push'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $channelAccessToken',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        print('LINE通知が正常に送信されました。');
+      } else {
+        print('LINE送信エラー: ${response.statusCode} - ${response.body}');
+        await GASNotifyService.notifyErrorToGas(
+            "Faital Error in LineNotifyService : \n${response.statusCode}\n${response.body}");
+      }
+      return response.statusCode.toString();
+    } catch (e, stackTrace) {
+      print('LINEサービス内でエラーが発生しました: $e');
+      await GASNotifyService.notifyErrorToGas(
+          "Faital Error in sendFlexMessage: \n $e \n Stack: $stackTrace");
+      return "";
+    }
+  }
+
   /// OrderCapsuleのリストを受け取って、LINEへカルーセル形式で送信する
   Future<String> sendOrderNotifications(List<OrderCapsule> orders) async {
-    if (channelAccessToken.isEmpty || targetUserId.isEmpty) {
-      throw Exception('LINEの認証情報（環境変数）が不足しています。');
+    if (targetUserId.isEmpty) {
+      throw Exception('LINEのターゲットユーザーIDが設定されていません。');
     }
 
     try {
@@ -78,50 +124,19 @@ class LineNotifyService {
         return jsonDecode(replaced) as Map<String, dynamic>;
       }).toList();
 
-      // 3. LINE Messaging API 用のペイロード組み立て
-      final body = {
-        "to": targetUserId,
-        "messages": [
-          {
-            "type": "flex",
-            "altText": "振り込みタスクのお知らせ",
-            "contents": {
-              "type": "carousel",
-              "contents": carouselContents // 生成したバブルのリストをここに流し込む
-            }
-          }
-        ]
-      };
-
-      // 4. 送信実行
-      if (true) {
-        final response = await http.post(
-          Uri.parse('https://api.line.me/v2/bot/message/push'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $channelAccessToken',
-          },
-          body: jsonEncode(body),
-        );
-
-        if (response.statusCode == 200) {
-          print('LINE通知が正常に送信されました。');
-        } else {
-          print('LINE送信エラー: ${response.statusCode} - ${response.body}');
-          await GASNotifyService.notifyErrorToGas(
-              "Faital Error in LineNotifyService : \n${response.statusCode}\n${response.body}");
-        }
-
-        print(jsonEncode(body));
-        return response.statusCode.toString();
-      } else {
-        return jsonEncode(body);
-      }
+      return await sendFlexMessage(
+        to: targetUserId,
+        altText: "振り込みタスクのお知らせ",
+        contents: {
+          "type": "carousel",
+          "contents": carouselContents
+        },
+      );
     } catch (e, stackTrace) {
       print('LINEサービス内でエラーが発生しました: $e');
       await GASNotifyService.notifyErrorToGas(
           "Faital Error in AppService: \n $e \n Stack: $stackTrace");
+      return "";
     }
-    return "";
   }
 }
