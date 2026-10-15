@@ -4,7 +4,7 @@ import 'package:truck_manager/services/asset_loader.dart';
 import 'dart:convert';
 
 class FirestoreService {
-  final FirestoreApi _api;
+  final  _api;
   final String _project;
   final String _collection;
 
