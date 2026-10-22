@@ -27,7 +27,7 @@ class FirestoreService {
     return FirestoreService(FirestoreApi(client), project, _collection);
   }
 
-  Future<void> saveDocument({
+Future<void> saveDocument({
     required String collectionId,
     required String docId,
     required Map<String, dynamic> data,
@@ -36,28 +36,42 @@ class FirestoreService {
     final safeDocId = docId.replaceAll('/', '-');
     final documentPath = '$collectionId/$safeDocId';
 
-    // 1. メインドキュメントの更新
-    // 引用元：https://pub.dev/documentation/googleapis/latest/firestore/v1/ProjectsDatabasesDocumentsResource/patch.html (公式)
     final document = _createDocumentFromMap(data);
-    await _api.projects.databases.documents.patch(
-      document,
-      '$parent/$documentPath',
-      updateMask_fieldPaths: data.keys.toList(), // 指定したフィールドのみ更新
-    );
+
+    // 1. メインドキュメントの保存（Try-Catchで更新と新規作成を分岐）
+    try {
+      // まずは更新 (patch) を試みる
+      await _api.projects.databases.documents.patch(
+        document,
+        '$parent/$documentPath',
+        updateMask_fieldPaths: data.keys.toList(),
+      );
+    } catch (e) {
+      // 404エラー（見つからない）の場合は新規作成 (createDocument) を実行する
+      if (e.toString().contains('404')) {
+        await _api.projects.databases.documents.createDocument(
+          document,
+          parent,
+          collectionId,
+          documentId: safeDocId, // 新規作成時はここでIDを指定
+        );
+      } else {
+        // 404以外の予期せぬエラーはそのまま上に投げる
+        rethrow;
+      }
+    }
 
     // 2. 更新履歴の作成
     final historyData = Map<String, dynamic>.from(data);
     historyData['updatedAt'] = DateTime.now().toUtc().toIso8601String();
     final historyDocument = _createDocumentFromMap(historyData);
 
-    // 履歴を保存するサブコレクションの「親」となるパスを指定
-    // 構造: projects/.../documents/コレクション/ドキュメントID
     final historyParentPath = '$parent/$collectionId/$safeDocId';
 
     await _api.projects.databases.documents.createDocument(
       historyDocument,
       historyParentPath,
-      'history',
+      await AssetLoader.readAsset('FIRESTORE_SUB_COLLECTION_NAME'),
     );
   }
 
