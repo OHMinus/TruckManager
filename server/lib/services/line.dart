@@ -72,7 +72,7 @@ class LineNotifyService {
   }
 
   /// OrderCapsuleのリストを受け取って、LINEへカルーセル形式で送信する
-  Future<String> sendOrderNotifications(List<OrderCapsule> orders) async {
+  Future<String> sendOrderNotifications(List<OrderCapsule> orders,String altText) async {
     if (targetUserId.isEmpty) {
       throw Exception('LINEのターゲットユーザーIDが設定されていません。');
     }
@@ -121,12 +121,26 @@ class LineNotifyService {
         replaced =
             replaced.replaceAll('{{bgColor}}', "#${_safeValue(order.BGColor)}");
 
-        return jsonDecode(replaced) as Map<String, dynamic>;
+        // 文字列からMapにデコード
+        Map<String, dynamic> bubble = jsonDecode(replaced) as Map<String, dynamic>;
+
+        // URLが不正（null、空文字、または空白のみ）か判定
+        if (order.url == null || order.url!.trim().isEmpty) {
+          // テンプレートの "body" -> "contents" リストを取得
+          List<dynamic> bodyContents = bubble['body']['contents'];
+          
+          // ボタン要素と、その直前にあssssssるセパレーター（区切り線）を削除する
+          bodyContents.removeWhere((item) => 
+            item['type'] == 'button' || item['type'] == 'separator'
+          );
+        }
+        
+        return bubble;
       }).toList();
 
       return await sendFlexMessage(
         to: targetUserId,
-        altText: "振り込みタスクのお知らせ",
+        altText: altText,
         contents: {
           "type": "carousel",
           "contents": carouselContents
