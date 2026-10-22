@@ -1,18 +1,18 @@
 import 'package:truck_manager/services/pdf_service.dart';
 import 'package:truck_manager/services/firestore_service.dart';
 import 'package:truck_manager/services/line.dart';
-import 'package:truck_manager/services/notify.dart';
-import 'package:truck_manager/services/capsules.dart';
 import 'package:truck_manager/services/asset_loader.dart';
 import 'package:truck_manager/services/gdrive_service.dart';
 import 'package:truck_manager/services/mail.dart';
 import 'package:truck_manager/services/spread_sheet.dart';
 import 'package:truck_manager/truck_manager.dart';
+import 'package:truck_manager/rentacar_workflow.dart';
 
 class App {
   final AppService _appService;
+  final RentACarWorkflow _rentACarWorkflow;
 
-  App(this._appService);
+  App(this._appService, this._rentACarWorkflow);
 
   static Future<App> create() async {
     // 各サービスを非同期で初期化
@@ -28,15 +28,18 @@ class App {
     // AppServiceにすべてのサービスを渡して初期化
     final appService =
         AppService(pdf, drive, firestore, line, gmail, spreadsheet);
+    final rentACarWorkflow = RentACarWorkflow(gmail, line, firestore);
 
-    return App(appService);
+    return App(appService, rentACarWorkflow);
   }
 
   // AppServiceのメソッドを呼び出す
   Future<void> runInvoiceSyncWorkflow() => _appService.runInvoiceSyncWorkflow();
+  Future<void> runRentACarWorkflow() => _rentACarWorkflow.run();
 }
 
 Future<void> main() async {
   final app = await App.create();
   await app.runInvoiceSyncWorkflow();
+  await app.runRentACarWorkflow();
 }

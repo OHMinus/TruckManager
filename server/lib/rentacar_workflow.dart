@@ -3,6 +3,10 @@ import 'package:truck_manager/services/mail.dart';
 import 'package:truck_manager/services/asset_loader.dart';
 import 'package:truck_manager/services/notify.dart';
 import 'package:truck_manager/services/firestore_service.dart';
+import 'package:truck_manager/services/capsules.dart';
+import 'package:truck_manager/services/color.dart';
+import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
 
 class RentACarWorkflow {
   final GmailService _gmail;
@@ -22,39 +26,80 @@ class RentACarWorkflow {
       }
 
       print('Found ${messages.length} rent-a-car emails.');
-      final targetUserId = await AssetLoader.readAsset('LINE_TARGET_USER_ID');
-
+      var orders = <OrderCapsule>[];
       for (final messageMeta in messages) {
         final message = await _gmail.getMessageDetails(messageMeta.id!);
         final body = _gmail.getPlainTextBody(message);
-
         if (body != null) {
-          final parsedData = _parseEmailBody(body);
+          final parsedData = await _parseEmailBody(body);
+          print("Send balloon to ${parsedData['予約番号']}");
+          
           if (parsedData['予約番号'] != '不明') {
-            final flexContents = _createFlexMessageContents(parsedData);
-            await _line.sendFlexMessage(
-              to: targetUserId,
-              altText: "レンタカー予約のお知らせ",
-              contents: flexContents,
-            );
-
-            // Save to Firestore
-            String docId = parsedData['予約番号'] ?? DateTime.now().millisecondsSinceEpoch.toString();
-            if (docId == '不明') docId = DateTime.now().millisecondsSinceEpoch.toString();
-            await _firestore.saveDocument(
-              collectionId: "rentacar_bookings",
-              docId: docId,
-              data: parsedData,
-            );
-
-            // Mark as read if not in debug mode
-            if (!(await AssetLoader.isDebug())) {
-              await _gmail.markAsRead(message.id!);
-              print('Marked email ${message.id} as read.');
-            }
+            var uuid = Uuid();
+            parsedData['予約番号'] = uuid.v4().toString();
           }
+          if (parsedData['出発日時'] == '不明' || parsedData["出発日時"] == null) {
+            print('出発日時が不明のため、メール ${message.id} をスキップします。');
+            continue;
+          }else{
+            DateTime date = DateFormat('yyyy/MM/dd HH:mm').parse(parsedData['出発日時']!);
+            parsedData['出発日時'] = date.toIso8601String();
+          }
+          
+          OrderCapsule order = OrderCapsule(
+            state : State.reserved,
+            date :  parsedData['出発日時'] ?? '',
+            reserver: parsedData['お名前'] ?? '',
+            lastUpdated : DateTime.now(),
+            price : '不明',
+            url : '',
+            id : parsedData['予約番号'] ?? '',
+          );
+
+          order.percentage = "${order.getPercentageValue()}%";
+
+          ColorService colService = await ColorService.Create();
+          String? eMail = await _gmail.GetOriginalSender(message.id!);
+          if (eMail != null) {
+            eMail = eMail.split(" ")[0];
+          }
+          HSL color = await colService.GetColor(eMail);
+          color.L = order.getIdealLightness();
+          order.BGColor = color.ToRGBSt();
+
+          // Save to Firestore
+          String docId = parsedData['予約番号'] ?? DateTime.now().millisecondsSinceEpoch.toString();
+          if (docId == '不明') docId = DateTime.now().millisecondsSinceEpoch.toString();
+          await _firestore.saveDocument(
+            collectionId: "rentacar_bookings",
+            docId: docId,
+            data: {
+              ...order.toJson(),
+              "carType": parsedData['クラス'] ?? '',
+              "pickupLocation": parsedData['出発店舗'] ?? '',
+              "returnDate": parsedData['返却日時'] ?? '',
+              "departureDate": parsedData['出発日時'] ?? '',  
+            },
+          );
+
+          // Mark as read if not in debug mode
+          if (!(await AssetLoader.isDebug())) {
+            await _gmail.markAsRead(message.id!);
+            print('Marked email ${message.id} as read.');
+          }
+          
+          orders.add(order);
+        }else{
+          print('No plain text body found for email ${message.id}.');
         }
       }
+      if (orders.isNotEmpty) {
+        print('Sending LINE notifications for ${orders.length} orders.');
+        await _line.sendOrderNotifications(orders, "レンタカー予約のお知らせ");
+      } else {
+        print('No valid orders to send notifications for.');
+      }
+
     } catch (e, stackTrace) {
       print('An error occurred during the rent-a-car workflow: $e');
       print(stackTrace);
@@ -63,13 +108,18 @@ class RentACarWorkflow {
     }
   }
 
-  Map<String, String> _parseEmailBody(String body) {
+  Future<Map<String, String>> _parseEmailBody(String body) async{
     final Map<String, String> result = {};
 
     // Determine status based on subject or body contents
     String status = "予約完了";
     if (body.contains("変更いたしました")) {
       status = "予約変更";
+    }
+
+    body = body.replaceAll("\r\n", "\n"); // Normalize line endings
+    if (await AssetLoader.isDebug()) {
+      print(body);
     }
 
     result['ステータス'] = status;
@@ -86,65 +136,5 @@ class RentACarWorkflow {
   String _extractMatch(String text, RegExp regex) {
     final match = regex.firstMatch(text);
     return match?.group(1)?.trim() ?? '不明';
-  }
-
-  Map<String, dynamic> _createFlexMessageContents(Map<String, String> data) {
-    List<Map<String, dynamic>> boxContents = [];
-
-    data.forEach((key, value) {
-      if (key == 'ステータス') return; // Skip status in the body
-      boxContents.add({
-        "type": "box",
-        "layout": "horizontal",
-        "contents": [
-          {
-            "type": "text",
-            "text": key,
-            "size": "sm",
-            "color": "#aaaaaa",
-            "flex": 1
-          },
-          {
-            "type": "text",
-            "text": value,
-            "size": "sm",
-            "color": "#666666",
-            "flex": 3,
-            "wrap": true
-          }
-        ],
-        "spacing": "sm"
-      });
-    });
-
-    final isChanged = data['ステータス'] == '予約変更';
-    final headerColor = isChanged ? "#ffc107" : "#0D8186";
-
-    return {
-      "type": "bubble",
-      "size": "mega",
-      "header": {
-        "type": "box",
-        "layout": "vertical",
-        "contents": [
-          {
-            "type": "text",
-            "text": data['ステータス'] ?? "レンタカー予約",
-            "color": "#ffffff",
-            "weight": "bold",
-            "size": "md"
-          }
-        ],
-        "backgroundColor": headerColor,
-        "paddingAll": "12px"
-      },
-      "body": {
-        "type": "box",
-        "layout": "vertical",
-        "contents": boxContents,
-        "spacing": "md",
-        "paddingAll": "12px"
-      }
-    };
   }
 }
