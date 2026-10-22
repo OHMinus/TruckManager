@@ -52,6 +52,22 @@ class OrderCapsule {
     };
   }
 
+  double getIdealLightness(){
+    double result = 0;
+    if (this.state != State.unknown) {
+      result = 1 - (this.state.index * 0.2);
+    }
+    return result;
+  }
+
+  int getPercentageValue(){
+    int result = 0;
+    if (this.state != State.unknown) {
+      result = (this.state.index / (State.values.length - 1) * 100).toInt();
+    }
+    return result;
+  }
+
   // json deserializer
   factory OrderCapsule.fromJson(Map<String, dynamic> json) =>
       _$OrderCapsuleFromJson(json);
