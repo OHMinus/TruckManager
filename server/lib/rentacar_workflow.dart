@@ -5,18 +5,23 @@ import 'package:truck_manager/services/notify.dart';
 import 'package:truck_manager/services/firestore_service.dart';
 import 'package:truck_manager/services/capsules.dart';
 import 'package:truck_manager/services/color.dart';
+import 'package:truck_manager/services/spread_sheet.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
+import 'package:googleapis/firestore/v1.dart';
+import 'package:truck_manager/services/user.dart';
 
 class RentACarWorkflow {
   final GmailService _gmail;
   final LineNotifyService _line;
   final FirestoreService _firestore;
+  final SpreadSheetService _spreadsheet;
 
-  RentACarWorkflow(this._gmail, this._line, this._firestore);
+  RentACarWorkflow(this._gmail, this._line, this._firestore, this._spreadsheet);
 
   Future<void> run() async {
     print('Rent-a-car workflow started.');
+    final collectionId = await AssetLoader.readAsset("FIRESTORE_COLLECTION");
     try {
       final messages =
           await _gmail.fetchMessageList('is:unread subject:("【ニッポンレンタカー】ご予約")');
@@ -30,68 +35,175 @@ class RentACarWorkflow {
       for (final messageMeta in messages) {
         final message = await _gmail.getMessageDetails(messageMeta.id!);
         final body = _gmail.getPlainTextBody(message);
-        if (body != null) {
-          final parsedData = await _parseEmailBody(body);
-          print("Send balloon to ${parsedData['予約番号']}");
-          
-          if (parsedData['予約番号'] != '不明') {
-            var uuid = Uuid();
-            parsedData['予約番号'] = uuid.v4().toString();
-          }
-          if (parsedData['出発日時'] == '不明' || parsedData["出発日時"] == null) {
-            print('出発日時が不明のため、メール ${message.id} をスキップします。');
-            continue;
-          }else{
-            DateTime date = DateFormat('yyyy/MM/dd HH:mm').parse(parsedData['出発日時']!);
-            parsedData['出発日時'] = date.toIso8601String();
-          }
-          
-          OrderCapsule order = OrderCapsule(
-            state : State.reserved,
-            date :  parsedData['出発日時'] ?? '',
-            reserver: parsedData['お名前'] ?? '',
-            lastUpdated : DateTime.now(),
-            price : '不明',
-            url : '',
-            id : parsedData['予約番号'] ?? '',
-          );
 
-          order.percentage = "${order.getPercentageValue()}%";
-
-          ColorService colService = await ColorService.Create();
-          String? eMail = await _gmail.GetOriginalSender(message.id!);
-          if (eMail != null) {
-            eMail = eMail.split(" ")[0];
-          }
-          HSL color = await colService.GetColor(eMail);
-          color.L = order.getIdealLightness();
-          order.BGColor = color.ToRGBSt();
-
-          // Save to Firestore
-          String docId = parsedData['予約番号'] ?? DateTime.now().millisecondsSinceEpoch.toString();
-          if (docId == '不明') docId = DateTime.now().millisecondsSinceEpoch.toString();
-          await _firestore.saveDocument(
-            collectionId: "rentacar_bookings",
-            docId: docId,
-            data: {
-              ...order.toJson(),
-              "carType": parsedData['クラス'] ?? '',
-              "pickupLocation": parsedData['出発店舗'] ?? '',
-              "returnDate": parsedData['返却日時'] ?? '',
-              "departureDate": parsedData['出発日時'] ?? '',  
-            },
-          );
-
-          // Mark as read if not in debug mode
-          if (!(await AssetLoader.isDebug())) {
-            await _gmail.markAsRead(message.id!);
-            print('Marked email ${message.id} as read.');
-          }
-          
-          orders.add(order);
-        }else{
+        // 中身が読み取れないならスキップ
+        if (body == null) {
           print('No plain text body found for email ${message.id}.');
+          continue;
         }
+
+        final parsedData = await _parseEmailBody(body);
+        DateTime date = DateTime.now();
+        OrderCapsule order = OrderCapsule();
+        
+        // 予約番号が不明の場合はUUIDを生成して設定
+        if (parsedData['予約番号'] != '不明') {
+          var uuid = Uuid();
+          parsedData['予約番号'] = uuid.v4().toString();
+        }
+
+        // 出発日時が不明の場合はスキップ
+        if (parsedData['出発日時'] == '不明' || parsedData["出発日時"] == null) {
+          print('出発日時が不明のため、メール ${message.id} をスキップします。');
+          continue;
+        }else{
+          date = DateFormat('yyyy/MM/dd HH:mm').parse(parsedData['出発日時']!);
+          parsedData['出発日時'] = date.toIso8601String();
+        }
+      
+        try {
+            // 検索対象の値をわかりやすく変数に格納（※任意です）
+            final targetDate = DateFormat('yyyy-MM-dd').format(date);
+            final targetId = parsedData['予約番号'];
+            
+            print("$targetDate および 予約番号 $targetId に対応するドキュメントを取得中...");
+            
+            // 日時と予約番号（id）のAND条件で検索
+            final filter = Filter(
+              compositeFilter: CompositeFilter(
+                op: 'AND',
+                filters: [
+                  // 1つ目の条件: 日時 (date) が一致
+                  Filter(
+                    fieldFilter: FieldFilter(
+                      field: FieldReference(fieldPath: 'date'),
+                      op: 'EQUAL',
+                      value: Value(stringValue: targetDate), 
+                    ),
+                  ),
+                  // 2つ目の条件: id が一致
+                  Filter(
+                    fieldFilter: FieldFilter(
+                      field: FieldReference(fieldPath: 'id'), 
+                      op: 'EQUAL',
+                      value: Value(stringValue: targetId), 
+                    ),
+                  ),
+                ],
+              ),
+            );
+
+            // Firestoreからクエリを実行
+            final existingDocs = await _firestore.queryDocuments(
+              collectionId: collectionId,
+              filter: filter,
+            );
+
+            if (existingDocs.isNotEmpty) {
+              print("既存のOrderCapsuleが見つかりました。復元します。");
+              // 既存データから復元
+              // （AND検索により、基本的に1件だけがヒットする想定です）
+              order = OrderCapsule.fromJson(existingDocs.first);
+            } else {
+              print("該当するOrderCapsuleは見つかりませんでした。");
+            }
+          } catch (e, stackTrace) {
+            GASNotifyService.notifyErrorToGas(
+                "faital error in retriving order: $e \n $stackTrace");
+          }
+
+         order = OrderCapsule(
+          state : State.reserved,
+          date :  parsedData['出発日時'] ?? '',
+          reserver: parsedData['お名前'] ?? '',
+          lastUpdated : DateTime.now(),
+          price : '不明',
+          url : '',
+          id : parsedData['予約番号'] ?? '',
+        );
+        order.percentage = "${order.getPercentageValue()}%";
+
+        // shiftの取得とorderへの練習内容の反映
+        ShiftCapsule shift;
+        try {
+          print("${order.date}に対応するシフトを取得中...");
+          DateTime date = DateTime.parse(order.date);
+          ShiftCapsule? shiftNullable =
+              await _spreadsheet.retriveTruckData(date);
+          if (shiftNullable == null) {
+            print("シフトを取得できませんでした。一日前で検索します。");
+            date = date.subtract(const Duration(days: 1));
+            ShiftCapsule? shiftNullable =
+                await _spreadsheet.retriveTruckData(date);
+            if (shiftNullable == null) {
+              GASNotifyService.notifyErrorToGas("""
+                Non Faital Error From SpreadSheetService via App Service: 
+                対応するシフトが得られませんでした。
+                日付: ${order.date}
+                やったこと : 発行日当日及び前日のシフト確認
+                打開策 :
+                """
+                  .trim());
+              shiftNullable = ShiftCapsule(
+                client: '',
+                date: DateTime.now().toIso8601String(),
+                eventName: '対応した行事がわかりません',
+                assignment: '担当ドライバーが不明です',
+                reserver: '予約者が不明です',
+                id: '404',
+              );
+            }
+          }
+          shift = shiftNullable!;
+        } catch (e, t) {
+          GASNotifyService.notifyErrorToGas("faital error : $e \n $t");
+          shift = ShiftCapsule(
+            client: '',
+            date: DateTime.now().toIso8601String(),
+            eventName: '対応した行事がわかりません',
+            assignment: '担当ドライバーが不明です',
+            reserver: '予約者が不明です',
+            id: '404',
+          );
+        }
+
+        order.objectName = shift.eventName;
+
+        //予約者の取得と日調君への反映
+        String? eMail = await _gmail.GetOriginalSender(message.id!);
+        UserService userService = await UserService.Create();
+        UserCapsule user = await userService.GetUser(eMail);
+        _spreadsheet.updateTruckDataByHeader(DateTime.parse(order.date), "予約者", user.name);
+
+        if (eMail != null) {
+          eMail = eMail.split(" ")[0];
+        }
+        HSL color = HSL.FromRGBSt(user.color);
+        color.L = order.getIdealLightness();
+        order.BGColor = color.ToRGBSt();
+
+        // Save to Firestore
+        String docId = parsedData['予約番号'] ?? DateTime.now().millisecondsSinceEpoch.toString();
+        if (docId == '不明') docId = DateTime.now().millisecondsSinceEpoch.toString();
+        await _firestore.saveDocument(
+          collectionId: collectionId,
+          docId: docId,
+          data: {
+            ...order.toJson(),
+            "carType": parsedData['クラス'] ?? '',
+            "pickupLocation": parsedData['出発店舗'] ?? '',
+            "returnDate": parsedData['返却日時'] ?? '',
+            "departureDate": parsedData['出発日時'] ?? '',  
+          },
+        );
+
+        // Mark as read if not in debug mode
+        if (!(await AssetLoader.isDebug())) {
+          await _gmail.markAsRead(message.id!);
+          print('Marked email ${message.id} as read.');
+        }
+        
+        orders.add(order);
       }
       if (orders.isNotEmpty) {
         print('Sending LINE notifications for ${orders.length} orders.');

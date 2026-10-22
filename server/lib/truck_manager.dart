@@ -198,7 +198,7 @@ class AppService {
           }
         }
       }
-      //await _line.sendOrderNotifications(orders);
+      await _line.sendOrderNotifications(orders,"振り込み依頼");
       if (await tmp.exists()) {
         await tmp.delete(recursive: true);
         print('Cleaned up temporary directory: ${tmp.path}');

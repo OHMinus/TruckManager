@@ -28,7 +28,11 @@ class App {
     // AppServiceにすべてのサービスを渡して初期化
     final appService =
         AppService(pdf, drive, firestore, line, gmail, spreadsheet);
-    final rentACarWorkflow = RentACarWorkflow(gmail, line, firestore);
+
+    final targetUserReserveId = await AssetLoader.readAsset('LINE_TARGET_RESERVE_ID');
+    final lineReserve = await LineNotifyService.create(targetId: targetUserReserveId);
+
+    final rentACarWorkflow = RentACarWorkflow(gmail, lineReserve, firestore);
 
     return App(appService, rentACarWorkflow);
   }
