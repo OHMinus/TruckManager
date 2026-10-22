@@ -213,3 +213,17 @@ class ShiftCapsule {
     );
   }
 }
+
+
+@JsonSerializable()
+class UserCapsule {
+  String address;
+  String color;
+  String name;
+
+  UserCapsule({
+    this.address = '',
+    this.color = '',
+    this.name = '',
+  });
+}
