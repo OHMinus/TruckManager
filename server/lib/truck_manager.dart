@@ -185,7 +185,7 @@ class AppService {
                 eMail = eMail.split(" ")[0];
               }
               HSL color = await colService.GetColor(eMail);
-              color.L = 0.4;
+              color.L = order.getIdealLightness();
               order.BGColor = color.ToRGBSt();
 
               orders.add(order);
