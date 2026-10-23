@@ -64,3 +64,4 @@ jobs:
 
           FIRESTORE_DB_NAME : ${{ secrets.FIRESTORE_DB_NAME }}
           FIRESTORE_COLLECTION : ${{ secrets.FIRESTORE_COLLECTION }}
+          FIRESTORE_SUB_COLLECTION_NAME : history

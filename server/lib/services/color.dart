@@ -1,9 +1,8 @@
 import 'dart:math';
 import 'package:truck_manager/services/asset_loader.dart';
-import 'package:truck_manager/services/firebase_service.dart';
 import 'package:truck_manager/services/firestore_service.dart';
-import 'package:googleapis/firestore/v1.dart';
-import 'package:truck_manager/services/notify.dart';
+import 'package:shared/capsules.dart';
+import 'package:truck_manager/services/user.dart';
 
 class HSL {
   int H = 0;
@@ -109,42 +108,9 @@ class ColorService {
   }
 
   Future<String> GetColorSt(String? mail) async {
-    String color = "333333";
-    if (mail == null) {
-      return color;
-    }
-    var username = "";
-    //Where mail = $mail
-    //https://pub.dev/documentation/googleapis/latest/firestore/v1/FieldFilter-class.html (公式)
-    final filter = Filter(
-      fieldFilter: FieldFilter(
-        field: FieldReference(fieldPath: 'address'),
-        op: 'EQUAL',
-        value: Value(stringValue: mail),
-      ),
-    );
-    try {
-      final docs = await _firestoreService.queryDocuments(
-          collectionId: "user", filter: filter);
-      if (docs.isNotEmpty) {
-        final firstDoc = docs.first;
-        username = mail;
-        color = firstDoc['color'] as String;
-      } else {
-        final defaultDoc = await _firestoreService.getDocument(
-          collectionId: "user",
-          docId: "default",
-        );
-        if (defaultDoc != null) {
-          color = defaultDoc['color'] as String;
-          username = "dafault";
-        }
-      }
-    } catch (e, stackTrace) {
-      GASNotifyService.notifyErrorToGas("faital error : $e \n $stackTrace");
-    }
-    print("$username $color");
-    return color;
+    UserService userService = await UserService.Create();
+    UserCapsule user = await userService.GetUser(mail);
+    return user.color;
   }
 
   Future<HSL> GetColor(String? mail) async {

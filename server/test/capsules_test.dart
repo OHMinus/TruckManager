@@ -1,6 +1,6 @@
 
 import 'package:test/test.dart';
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 
 void main() {
   group('InvoiceCapsule', () {

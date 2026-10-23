@@ -2,7 +2,7 @@ import 'package:truck_manager/services/pdf_service.dart';
 import 'package:truck_manager/services/firestore_service.dart';
 import 'package:truck_manager/services/line.dart';
 import 'package:truck_manager/services/notify.dart';
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 import 'package:truck_manager/services/gdrive_service.dart';
 import 'package:truck_manager/services/mail.dart';
 import 'package:truck_manager/services/spread_sheet.dart';

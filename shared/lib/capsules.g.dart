@@ -82,3 +82,16 @@ Map<String, dynamic> _$ShiftCapsuleToJson(ShiftCapsule instance) =>
       'reserver': instance.reserver,
       'id': instance.id,
     };
+
+UserCapsule _$UserCapsuleFromJson(Map<String, dynamic> json) => UserCapsule(
+      address: json['address'] as String? ?? '',
+      color: json['color'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+    );
+
+Map<String, dynamic> _$UserCapsuleToJson(UserCapsule instance) =>
+    <String, dynamic>{
+      'address': instance.address,
+      'color': instance.color,
+      'name': instance.name,
+    };

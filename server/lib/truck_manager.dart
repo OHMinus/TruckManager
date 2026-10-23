@@ -8,7 +8,7 @@ import 'package:truck_manager/services/pdf_service.dart';
 import 'package:truck_manager/services/firestore_service.dart';
 import 'package:truck_manager/services/line.dart';
 import 'package:truck_manager/services/notify.dart';
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 import 'package:truck_manager/services/gdrive_service.dart';
 import 'package:truck_manager/services/mail.dart';
 import 'package:truck_manager/services/spread_sheet.dart';
@@ -27,6 +27,7 @@ class AppService {
 
   Future<void> runInvoiceSyncWorkflow() async {
     print('Invoice processing workflow started.');
+    final baseUrl = await AssetLoader.readAsset("BASE_URL");
     try {
       final tmpDir = await AssetLoader.readAsset('TMP_DIR');
       final tmp = Directory(tmpDir);
@@ -169,6 +170,7 @@ class AppService {
                   'imageUrl': imgUrl,
                   'pdfUrl': pdfUrl,
                   'createdAt': DateTime.now().toUtc().toIso8601String(),
+                  'state': State.unpaid.name,
                 },
               );
 
@@ -177,7 +179,7 @@ class AppService {
                 await _gmail.markAsRead(message.id!);
                 print('Marked email ${message.id} as read.');
               }
-              order.url = imgUrl;
+              order.url = "$baseUrl/order/${order.id}";
 
               ColorService colService = await ColorService.Create();
               String? eMail = await _gmail.GetOriginalSender(message.id!);
@@ -185,7 +187,7 @@ class AppService {
                 eMail = eMail.split(" ")[0];
               }
               HSL color = await colService.GetColor(eMail);
-              color.L = 0.4;
+              color.L = order.getIdealLightness();
               order.BGColor = color.ToRGBSt();
 
               orders.add(order);
@@ -198,7 +200,7 @@ class AppService {
           }
         }
       }
-      //await _line.sendOrderNotifications(orders);
+      await _line.sendOrderNotifications(orders,"振り込み依頼");
       if (await tmp.exists()) {
         await tmp.delete(recursive: true);
         print('Cleaned up temporary directory: ${tmp.path}');
