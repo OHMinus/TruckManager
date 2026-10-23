@@ -41,7 +41,7 @@ class UserService {
           collectionId: "user", filter: filter);
       if (docs.isNotEmpty) {
         final firstDoc = docs.first;
-        username = mail;
+        username = firstDoc['name'] as String;
         color = firstDoc['color'] as String;
       } else {
         final defaultDoc = await _firestoreService.getDocument(
@@ -57,7 +57,7 @@ class UserService {
       GASNotifyService.notifyErrorToGas("faital error : $e \n $stackTrace");
     }
     return UserCapsule(
-      address: username,
+      address: mail,
       color: color,
       name: username,
     );
