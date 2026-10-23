@@ -185,7 +185,7 @@ class AppService {
                 eMail = eMail.split(" ")[0];
               }
               HSL color = await colService.GetColor(eMail);
-              color.L = 0.4;
+              color.L = order.getIdealLightness();
               order.BGColor = color.ToRGBSt();
 
               orders.add(order);
@@ -198,7 +198,7 @@ class AppService {
           }
         }
       }
-      //await _line.sendOrderNotifications(orders);
+      await _line.sendOrderNotifications(orders,"振り込み依頼");
       if (await tmp.exists()) {
         await tmp.delete(recursive: true);
         print('Cleaned up temporary directory: ${tmp.path}');
