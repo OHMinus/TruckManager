@@ -32,7 +32,7 @@ class App {
     final targetUserReserveId = await AssetLoader.readAsset('LINE_TARGET_RESERVE_ID');
     final lineReserve = await LineNotifyService.create(targetId: targetUserReserveId);
 
-    final rentACarWorkflow = RentACarWorkflow(gmail, lineReserve, firestore);
+    final rentACarWorkflow = RentACarWorkflow(gmail, lineReserve, firestore, spreadsheet);
 
     return App(appService, rentACarWorkflow);
   }
@@ -44,6 +44,6 @@ class App {
 
 Future<void> main() async {
   final app = await App.create();
-  await app.runInvoiceSyncWorkflow();
+  //await app.runInvoiceSyncWorkflow();
   await app.runRentACarWorkflow();
 }

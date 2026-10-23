@@ -45,9 +45,8 @@ class RentACarWorkflow {
         final parsedData = await _parseEmailBody(body);
         DateTime date = DateTime.now();
         OrderCapsule order = OrderCapsule();
-        
         // 予約番号が不明の場合はUUIDを生成して設定
-        if (parsedData['予約番号'] != '不明') {
+        if (parsedData['予約番号'] == '不明') {
           var uuid = Uuid();
           parsedData['予約番号'] = uuid.v4().toString();
         }
@@ -58,51 +57,63 @@ class RentACarWorkflow {
           continue;
         }else{
           date = DateFormat('yyyy/MM/dd HH:mm').parse(parsedData['出発日時']!);
-          parsedData['出発日時'] = date.toIso8601String();
         }
       
         try {
             // 検索対象の値をわかりやすく変数に格納（※任意です）
             final targetDate = DateFormat('yyyy-MM-dd').format(date);
-            final targetId = parsedData['予約番号'];
             
-            print("$targetDate および 予約番号 $targetId に対応するドキュメントを取得中...");
+            print("$targetDate に対応するドキュメントを取得中...");
             
             // 日時と予約番号（id）のAND条件で検索
-            final filter = Filter(
-              compositeFilter: CompositeFilter(
-                op: 'AND',
-                filters: [
-                  // 1つ目の条件: 日時 (date) が一致
+            var filter = 
                   Filter(
                     fieldFilter: FieldFilter(
                       field: FieldReference(fieldPath: 'date'),
                       op: 'EQUAL',
                       value: Value(stringValue: targetDate), 
                     ),
-                  ),
-                  // 2つ目の条件: id が一致
-                  Filter(
-                    fieldFilter: FieldFilter(
-                      field: FieldReference(fieldPath: 'id'), 
-                      op: 'EQUAL',
-                      value: Value(stringValue: targetId), 
-                    ),
-                  ),
-                ],
-              ),
-            );
+                  );
 
             // Firestoreからクエリを実行
-            final existingDocs = await _firestore.queryDocuments(
+            var existingDocs = await _firestore.queryDocuments(
               collectionId: collectionId,
               filter: filter,
             );
 
+            if(existingDocs.length > 1){
+              print("複数のOrderCapsuleが見つかりました。予約番号 ${parsedData['予約番号']} で絞り込みます。");
+              filter = Filter(
+                compositeFilter: CompositeFilter(
+                  op: 'AND',
+                  filters: [
+                    // 1つ目の条件: 日時 (date) が一致
+                    Filter(
+                      fieldFilter: FieldFilter(
+                        field: FieldReference(fieldPath: 'date'),
+                        op: 'EQUAL',
+                        value: Value(stringValue: targetDate), 
+                      ),
+                    ),
+                    // 2つ目の条件: id が一致
+                    Filter(
+                      fieldFilter: FieldFilter(
+                        field: FieldReference(fieldPath: 'id'), 
+                        op: 'EQUAL',
+                        value: Value(stringValue: parsedData['予約番号']), 
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              existingDocs = await _firestore.queryDocuments(
+                collectionId: collectionId,
+                filter: filter,
+              );
+            }
+
             if (existingDocs.isNotEmpty) {
               print("既存のOrderCapsuleが見つかりました。復元します。");
-              // 既存データから復元
-              // （AND検索により、基本的に1件だけがヒットする想定です）
               order = OrderCapsule.fromJson(existingDocs.first);
             } else {
               print("該当するOrderCapsuleは見つかりませんでした。");
@@ -114,7 +125,7 @@ class RentACarWorkflow {
 
          order = OrderCapsule(
           state : State.reserved,
-          date :  parsedData['出発日時'] ?? '',
+          date :   DateFormat('yyyy-MM-dd').format(date),
           reserver: parsedData['お名前'] ?? '',
           lastUpdated : DateTime.now(),
           price : '不明',
@@ -241,7 +252,7 @@ class RentACarWorkflow {
     result['返却日時'] = _extractMatch(body, RegExp(r'返却日時：(.*?)\n'));
     result['出発店舗'] = _extractMatch(body, RegExp(r'出発店舗\(TEL\)：(.*?)\n'));
     result['クラス'] = _extractMatch(body, RegExp(r'クラス：(.*?)\n'));
-
+    print("${result['予約番号']} に対応するデータを抽出しました。");
     return result;
   }
 
