@@ -2,19 +2,19 @@
 # see: https://developers.google.com/idx/guides/customize-idx-env
 { pkgs, ... }: {
   # Which nixpkgs channel to use.
-  channel = "stable-23.11"; # or "unstable"
+  channel = "stable-24.05"; # or "unstable"
 
   # Use https://search.nixos.org/packages to find packages
   packages = [
     pkgs.nodePackages.firebase-tools
-    pkgs.jdk17
+    pkgs.jdk21
     pkgs.unzip
     pkgs.dart
     pkgs.flutter
-    pkgs.poppler_utils
     pkgs.nodejs_20
     pkgs.curl
     pkgs.zip
+    pkgs.poppler_utils
   ];
 
   # Sets environment variables in the workspace
@@ -27,6 +27,27 @@
       "Dart-Code.flutter"
     ];
 
+previews = {
+      enable = true;
+      previews = {
+        web = {
+          command = [
+            "bash"
+            "-c"
+            "cd mobile && flutter run --machine -d web-server --web-hostname 0.0.0.0 --web-port $PORT"
+          ];
+          manager = "web";
+        };
+        android = {
+          command = [
+            "bash"
+            "-c"
+            "cd mobile && flutter run --machine -d android"
+          ];
+          manager = "android"; # これにより、IDXが自動でエミュレータを準備します
+        };
+      };
+    };
 
     # Workspace lifecycle hooks
     workspace = {
