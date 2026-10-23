@@ -11,10 +11,10 @@ void main() async {
   try {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: "placeholder_api_key",
-        appId: "placeholder_app_id",
-        messagingSenderId: "placeholder_sender_id",
-        projectId: "placeholder_project_id",
+        apiKey: "AIzaSyCoxrOMad3zry3hlqS9ZGAvXLBNYJ9ZHQU",
+        appId: "1:490940411719:web:88a3fa40939a2991dfa662",
+        messagingSenderId: "490940411719",
+        projectId: "cuwo-74f73",
       ),
     );
   } catch (e) {

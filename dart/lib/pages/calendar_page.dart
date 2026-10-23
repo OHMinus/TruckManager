@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:go_router/go_router.dart';
-import '../models/capsules.dart' as model;
+import 'package:shared/capsules.dart' as model;
 import '../services/firestore_service.dart';
 
 class CalendarPage extends StatefulWidget {
@@ -26,14 +26,19 @@ class _CalendarPageState extends State<CalendarPage> {
     super.initState();
     _selectedDay = _focusedDay;
 
-    _firestoreService.getOrdersStream().listen((orders) {
-      if (mounted) {
-        setState(() {
-          _groupedOrders = _groupOrdersByDate(orders);
-          _selectedEvents = _getEventsForDay(_selectedDay!);
-        });
-      }
-    });
+    _firestoreService.getOrdersStream().listen(
+      (orders) {
+        if (mounted) {
+          setState(() {
+            _groupedOrders = _groupOrdersByDate(orders);
+            _selectedEvents = _getEventsForDay(_selectedDay!);
+          });
+        }
+      },
+      onError: (error, stackTrace) {
+        debugPrint('🔥 Firestore Stream Error: $error');
+      },
+    );
   }
 
   Map<DateTime, List<model.OrderCapsule>> _groupOrdersByDate(List<model.OrderCapsule> orders) {
