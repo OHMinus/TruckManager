@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 import 'package:truck_manager/services/asset_loader.dart';
 import 'package:truck_manager/services/notify.dart';
 

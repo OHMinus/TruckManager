@@ -3,7 +3,7 @@ import 'package:truck_manager/services/mail.dart';
 import 'package:truck_manager/services/asset_loader.dart';
 import 'package:truck_manager/services/notify.dart';
 import 'package:truck_manager/services/firestore_service.dart';
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 import 'package:truck_manager/services/color.dart';
 import 'package:truck_manager/services/spread_sheet.dart';
 import 'package:uuid/uuid.dart';
@@ -21,6 +21,7 @@ class RentACarWorkflow {
 
   Future<void> run() async {
     print('Rent-a-car workflow started.');
+    final baseUrl = await AssetLoader.readAsset("BASE_URL");
     final collectionId = await AssetLoader.readAsset("FIRESTORE_COLLECTION");
     try {
       final messages =
@@ -129,7 +130,7 @@ class RentACarWorkflow {
           reserver: parsedData['お名前'] ?? '',
           lastUpdated : DateTime.now(),
           price : '不明',
-          url : '',
+          url : "$baseUrl/order/${order.id}",
           id : parsedData['予約番号'] ?? '',
         );
         order.percentage = "${order.getPercentageValue()}%";
@@ -205,6 +206,7 @@ class RentACarWorkflow {
             "pickupLocation": parsedData['出発店舗'] ?? '',
             "returnDate": parsedData['返却日時'] ?? '',
             "departureDate": parsedData['出発日時'] ?? '',  
+            'state': State.reserved.name,
           },
         );
 
@@ -218,7 +220,7 @@ class RentACarWorkflow {
       }
       if (orders.isNotEmpty) {
         print('Sending LINE notifications for ${orders.length} orders.');
-        await _line.sendOrderNotifications(orders, "レンタカー予約のお知らせ");
+        // await _line.sendOrderNotifications(orders, "レンタカー予約のお知らせ");
       } else {
         print('No valid orders to send notifications for.');
       }

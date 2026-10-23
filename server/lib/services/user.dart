@@ -4,7 +4,7 @@ import 'package:truck_manager/services/firebase_service.dart';
 import 'package:truck_manager/services/firestore_service.dart';
 import 'package:googleapis/firestore/v1.dart';
 import 'package:truck_manager/services/notify.dart';
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 
 class UserService {
   final FirestoreService _firestoreService;

@@ -374,6 +374,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "shared",
+      "rootUri": "../../shared",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "shelf",
       "rootUri": "file:///home/user/.pub-cache/hosted/pub.dev/shelf-1.4.2",
       "packageUri": "lib/",

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:googleapis/sheets/v4.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:truck_manager/services/asset_loader.dart';
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 
 class SpreadSheetService {
   SheetsApi? sheetsApi;

@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:truck_manager/services/asset_loader.dart';
 import 'package:truck_manager/services/firestore_service.dart';
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 import 'package:truck_manager/services/user.dart';
 
 class HSL {
