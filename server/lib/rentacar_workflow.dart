@@ -220,7 +220,7 @@ class RentACarWorkflow {
       }
       if (orders.isNotEmpty) {
         print('Sending LINE notifications for ${orders.length} orders.');
-        // await _line.sendOrderNotifications(orders, "レンタカー予約のお知らせ");
+        await _line.sendOrderNotifications(orders, "レンタカー予約のお知らせ");
       } else {
         print('No valid orders to send notifications for.');
       }
