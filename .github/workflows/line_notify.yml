@@ -45,7 +45,7 @@ jobs:
 
       - name: Run
         run: |
-          cd truck_manager
+          cd server
           mkdir -p $TMP_DIR $FONT_DIR $CONFIG_DIR
           dart pub get
           dart run lib/app.dart
@@ -75,3 +75,4 @@ jobs:
 
           FIRESTORE_DB_NAME : ${{ secrets.FIRESTORE_DB_NAME }}
           FIRESTORE_COLLECTION : ${{ secrets.FIRESTORE_COLLECTION }}
+          FIRESTORE_SUB_COLLECTION_NAME : history

@@ -205,3 +205,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+g_cred.json
+server/test/test_env/cnfg/g_cred.json
