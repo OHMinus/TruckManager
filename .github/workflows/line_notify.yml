@@ -8,6 +8,10 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -32,6 +36,13 @@ jobs:
           flutter-version: '3.13.8'
           channel: 'stable'
 
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: '${{ secrets.WORKLOADID }}'
+          service_account: '${{ secrets.SERVICEACOUNT }}'
+
       - name: Run
         run: |
           cd server
@@ -42,7 +53,7 @@ jobs:
           TMP_DIR: ${{ github.workspace }}/tmp
           FONT_DIR: ${{ github.workspace }}/fonts
           CONFIG_DIR: ${{ github.workspace }}/config
-          FONT_URL : ${{ secrets.FONT_URL }}
+          FONT_URL : ${{ vars.FONT_URL }}
 
           OAUTH_ID: ${{ secrets.OAUTH_ID }}
           OAUTH_SECRET: ${{ secrets.OAUTH_SECRET }}
@@ -51,6 +62,7 @@ jobs:
 
           LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
           LINE_TARGET_USER_ID: ${{ secrets.LINE_TARGET_USER_ID }}
+          LINE_TARGET_RESERVE_ID: ${{ secrets.LINE_TARGET_RESERVE_ID}}
 
           SHIFT_SHEET_ID: ${{ secrets.SHIFT_SHEET_ID }}
 
@@ -61,6 +73,8 @@ jobs:
           GDRIVE_UPLOAD_FOLDER_ID : ${{ secrets.GDRIVE_UPLOAD_FOLDER_ID }}
           GEMINI_API_KEY : ${{ secrets.GEMINI_API_KEY }}
           PROJECT_ID : ${{ secrets.PROJECT_ID }}
+
+          BASE_URL: ${{ secrets.BASE_URL}}
 
           FIRESTORE_DB_NAME : ${{ secrets.FIRESTORE_DB_NAME }}
           FIRESTORE_COLLECTION : ${{ secrets.FIRESTORE_COLLECTION }}

@@ -71,8 +71,8 @@ class LineNotifyService {
     }
   }
 
-  /// OrderCapsuleのリストを受け取って、LINEへカルーセル形式で送信する
-  Future<String> sendOrderNotifications(List<OrderCapsule> orders,String altText) async {
+    /// OrderCapsuleのリストを受け取って、LINEへカルーセル形式で送信する
+  Future<String> sendOrderNotifications(List<OrderCapsule> orders, String altText) async {
     if (targetUserId.isEmpty) {
       throw Exception('LINEのターゲットユーザーIDが設定されていません。');
     }
@@ -100,52 +100,58 @@ class LineNotifyService {
           GASNotifyService.notifyErrorToGas("faital error : $e \n $stackTrace");
         }
 
-        // OrderCapsule のプロパティを使って、テンプレートの {{変数}} を置換
-        // _safeValue を使って空文字を防ぐ
-        replaced =
-            replaced.replaceAll('{{State}}', _safeValue(StateJp[order.state]));
-        replaced =
-            replaced.replaceAll('{{percentage}}', _safeValue(order.percentage));
+        replaced = replaced.replaceAll('{{State}}', _safeValue(StateJp[order.state]));
+        replaced = replaced.replaceAll('{{percentage}}', _safeValue(order.percentage));
         replaced = replaced.replaceAll('{{date}}', _safeValue(order.date));
         replaced = replaced.replaceAll('{{price}}', _safeValue(order.price));
-        replaced =
-            replaced.replaceAll('{{Object}}', _safeValue(order.objectName));
+        replaced = replaced.replaceAll('{{Object}}', _safeValue(order.objectName));
         replaced = replaced.replaceAll(
-            '{{Last}}',
-            _safeValue(
-                "${order.lastUpdated!.month}/${order.lastUpdated!.day}"));
+            '{{Last}}', _safeValue("${order.lastUpdated!.month}/${order.lastUpdated!.day}"));
         replaced = replaced.replaceAll('{{url}}', _safeValue(order.url));
-        replaced =
-            replaced.replaceAll('{{reserver}}', _safeValue(order.reserver));
-        print("BGColor : #${_safeValue(order.BGColor)}");
-        replaced =
-            replaced.replaceAll('{{bgColor}}', "#${_safeValue(order.BGColor)}");
+        replaced = replaced.replaceAll('{{reserver}}', _safeValue(order.reserver));
+        replaced = replaced.replaceAll('{{bgColor}}', "#${_safeValue(order.BGColor)}");
 
-        // 文字列からMapにデコード
         Map<String, dynamic> bubble = jsonDecode(replaced) as Map<String, dynamic>;
 
-        // URLが不正（null、空文字、または空白のみ）か判定
         if (order.url == null || order.url!.trim().isEmpty) {
-          // テンプレートの "body" -> "contents" リストを取得
           List<dynamic> bodyContents = bubble['body']['contents'];
-          
-          // ボタン要素と、その直前にあssssssるセパレーター（区切り線）を削除する
           bodyContents.removeWhere((item) => 
             item['type'] == 'button' || item['type'] == 'separator'
           );
         }
-        
+
         return bubble;
       }).toList();
 
-      return await sendFlexMessage(
-        to: targetUserId,
-        altText: altText,
-        contents: {
-          "type": "carousel",
-          "contents": carouselContents
-        },
-      );
+      // 3. APIの制限（最大12個）を回避するため、リストを分割して送信
+      const int maxBubblesPerCarousel = 10; // 安全マージンを取って10個ずつ（最大12個まで可）
+      String lastStatusCode = "200";
+
+      for (int i = 0; i < carouselContents.length; i += maxBubblesPerCarousel) {
+        // 部分リスト（チャンク）の終了インデックスを計算
+        final end = (i + maxBubblesPerCarousel < carouselContents.length)
+            ? i + maxBubblesPerCarousel
+            : carouselContents.length;
+        
+        final chunk = carouselContents.sublist(i, end);
+
+        // 複数回送信される場合、altTextにページ数をつけてあげると親切です
+        final int currentPage = (i ~/ maxBubblesPerCarousel) + 1;
+        final int totalPages = (carouselContents.length / maxBubblesPerCarousel).ceil();
+        final displayAltText = totalPages > 1 ? "$altText ($currentPage/$totalPages)" : altText;
+
+        lastStatusCode = await sendFlexMessage(
+          to: targetUserId,
+          altText: displayAltText,
+          contents: {
+            "type": "carousel",
+            "contents": chunk
+          },
+        );
+      }
+
+      return lastStatusCode;
+
     } catch (e, stackTrace) {
       print('LINEサービス内でエラーが発生しました: $e');
       await GASNotifyService.notifyErrorToGas(
