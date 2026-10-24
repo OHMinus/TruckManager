@@ -74,6 +74,8 @@ jobs:
           GEMINI_API_KEY : ${{ secrets.GEMINI_API_KEY }}
           PROJECT_ID : ${{ secrets.PROJECT_ID }}
 
+          BASE_URL: ${{ secrets.BASE_URL}}
+
           FIRESTORE_DB_NAME : ${{ secrets.FIRESTORE_DB_NAME }}
           FIRESTORE_COLLECTION : ${{ secrets.FIRESTORE_COLLECTION }}
           FIRESTORE_SUB_COLLECTION_NAME : history
