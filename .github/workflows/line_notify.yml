@@ -62,6 +62,7 @@ jobs:
 
           LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
           LINE_TARGET_USER_ID: ${{ secrets.LINE_TARGET_USER_ID }}
+          LINE_TARGET_RESERVE_ID: ${{ secrets.LINE_TARGET_RESERVE_ID}}
 
           SHIFT_SHEET_ID: ${{ secrets.SHIFT_SHEET_ID }}
 
