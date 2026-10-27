@@ -130,7 +130,7 @@ class RentACarWorkflow {
           reserver: parsedData['お名前'] ?? '',
           lastUpdated : DateTime.now(),
           price : '不明',
-          url : "$baseUrl/order/${order.id}",
+          url : "$baseUrl/order/${parsedData['予約番号'] }",
           id : parsedData['予約番号'] ?? '',
         );
         order.percentage = "${order.getPercentageValue()}%";
@@ -217,10 +217,24 @@ class RentACarWorkflow {
         }
         
         orders.add(order);
+        if(shift.id == '404'){
+          print("対応するシフトが見つからなかったため、LINE通知を送信します。");        
+          order = OrderCapsule(
+            state : State.unknown,
+            date :   DateFormat('yyyy-MM-dd').format(date),
+            reserver: parsedData['お名前'] ?? '',
+            lastUpdated : DateTime.now(),
+            price : '不明',
+            url : "$baseUrl/order/${order.id}",
+            id : parsedData['予約番号'] ?? '',
+          );
+          await _line.sendOrderNotifications([order], "不正な予約プロセス ${parsedData['予約番号']} について");
+        }
+
       }
       if (orders.isNotEmpty) {
         print('Sending LINE notifications for ${orders.length} orders.');
-        // await _line.sendOrderNotifications(orders, "レンタカー予約のお知らせ");
+        await _line.sendOrderNotifications(orders, "レンタカー予約のお知らせ");
       } else {
         print('No valid orders to send notifications for.');
       }
