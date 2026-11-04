@@ -17,7 +17,7 @@ class App {
     // 各サービスを非同期で初期化
     final pdf = await PdfService.create();
     final drive = await GDriveService.create();
-    final firestore = await FirestoreService.create();
+    final firestore = await FirestoreService.create("Test");
     final line = await LineNotifyService.create();
     final gmail = GmailServiceImpl();
     final spreadsheet = await SpreadSheetService.create();
