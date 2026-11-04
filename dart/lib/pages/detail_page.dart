@@ -39,11 +39,11 @@ class DetailPage extends StatelessWidget {
 
   String _getCarImageUrl(String carType) {
     if (carType.contains('アルミトラック')) {
-      return 'https://example.com/alumi_truck_sample.jpg';
+      return 'https://www.nipponrentacar.co.jp/car_price/img/truck/img_syasyu_type_re01.png';
     } else if (carType.contains('平トラック')) {
-      return 'https://example.com/flat_truck_sample.jpg';
+      return 'https://www.nipponrentacar.co.jp/car_price/img/truck/img_syasyu_type_ts01.png';
     } else if (carType.contains('バン')) {
-      return 'https://example.com/van_sample.jpg';
+      return 'https://www.nipponrentacar.co.jp/car_price/img/truck/img_syasyu_type_dd01.png';
     }
     return 'https://example.com/default_car.jpg';
   }
