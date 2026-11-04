@@ -39,11 +39,11 @@ class DetailPage extends StatelessWidget {
 
   String _getCarImageUrl(String carType) {
     if (carType.contains('アルミトラック')) {
-      return 'https://example.com/alumi_truck_sample.jpg';
+      return 'https://www.nipponrentacar.co.jp/car_price/img/truck/img_syasyu_type_re01.png';
     } else if (carType.contains('平トラック')) {
-      return 'https://example.com/flat_truck_sample.jpg';
+      return 'https://www.nipponrentacar.co.jp/car_price/img/truck/img_syasyu_type_ts01.png';
     } else if (carType.contains('バン')) {
-      return 'https://example.com/van_sample.jpg';
+      return 'https://www.nipponrentacar.co.jp/car_price/img/truck/img_syasyu_type_dd01.png';
     }
     return 'https://example.com/default_car.jpg';
   }
@@ -76,6 +76,9 @@ class DetailPage extends StatelessWidget {
           final String? carType = rawData['carType']?.toString();
           final String carImageUrl = carType != null ? _getCarImageUrl(carType) : '';
           final bool isSemiMedium = carType != null && carType.contains('2t');
+
+          final imageUrl = rawData['imageUrl'] as String?;
+
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -148,8 +151,27 @@ class DetailPage extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                if (imageUrl != null && imageUrl.isNotEmpty) ...[
+                  ElevatedButton(
+                    onPressed: () async {
+                      final Uri url = Uri.parse(imageUrl);
+                      if (!await launchUrl(url)) {
+                        throw Exception('Could not launch $imageUrl');
+                      }
 
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('請求書データを閲覧', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                const SizedBox(height: 12),
                 Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
