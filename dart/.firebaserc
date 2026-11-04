@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "cuwo-74f73"
+  },
+  "targets": {
+    "cuwo-74f73": {
+      "hosting": {
+        "cuwo-order-manager": [
+          "cuwo-order-manager"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

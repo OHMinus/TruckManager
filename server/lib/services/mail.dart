@@ -12,7 +12,9 @@ abstract class GmailService {
   Future<List<int>> fetchAttachment(String messageId, String attachmentId);
   Future<void> markAsRead(String id);
   Future<String?> GetOriginalSender(String id);
+  String? getPlainTextBody(gmail.Message message);
 }
+
 
 /// Gmail API との実際の通信を担うクラス
 class GmailServiceImpl implements GmailService {
@@ -106,18 +108,50 @@ class GmailServiceImpl implements GmailService {
   @override
   Future<String?> GetOriginalSender(String id) async {
     final message = await getMessageDetails(id);
-
+    String input = "";
     // 1. X-Forwarded-For ヘッダーを確認
     final forwardedFor = GetHeader(message, 'X-Forwarded-For');
-    if (forwardedFor != null) return forwardedFor;
+    if (forwardedFor != null) input = forwardedFor;
 
     // 2. 本文が 'Fwd:' の場合、Return-Path などを確認（憶測：環境により異なる）
     // 通常の From は転送した人のアドレスになっているため、
     // 転送設定による転送なら 'X-Forwarded-From' が存在する場合もあります。
     final forwardedFrom = GetHeader(message, 'X-Forwarded-From');
-    if (forwardedFrom != null) return forwardedFrom;
+    if (forwardedFrom != null) input = forwardedFrom;
 
     // 3. 見つからない場合は通常の From を返すか、null を返す
-    return GetHeader(message, 'From');
+    input = GetHeader(message, 'From') ?? input;
+
+    // 一般的なメールアドレスの形式にマッチする正規表現
+    RegExp emailRegExp = RegExp(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}');
+    
+    // 最初のマッチを検索
+    Match? match = emailRegExp.firstMatch(input);
+  
+    if (match != null) return match.group(0)!;
+    return null;
+  }
+
+  @override
+  String? getPlainTextBody(gmail.Message message) {
+    String text = '';
+    if (message.payload?.parts != null) {
+      for (var part in message.payload!.parts!) {
+        if (part.mimeType == 'text/plain' && part.body?.data != null) {
+          try {
+            text += utf8.decode(base64Url.decode(base64Url.normalize(part.body!.data!)));
+          } catch (e) {
+            print('Error decoding body: $e');
+          }
+        }
+      }
+    } else if (message.payload?.body?.data != null) {
+      try {
+        text = utf8.decode(base64Url.decode(base64Url.normalize(message.payload!.body!.data!)));
+      } catch (e) {
+        print('Error decoding body: $e');
+      }
+    }
+    return text.isEmpty ? null : text;
   }
 }

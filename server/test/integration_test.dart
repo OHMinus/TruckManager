@@ -6,7 +6,7 @@ import 'package:mockito/mockito.dart';
 import 'package:googleapis/gmail/v1.dart' as gmail;
 import 'package:truck_manager/app.dart';
 import 'package:truck_manager/services/asset_loader.dart';
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 import 'package:truck_manager/services/line.dart';
 
 // app_test.dartで生成されたモッククラスを再利用します。

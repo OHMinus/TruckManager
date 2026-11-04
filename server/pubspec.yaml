@@ -22,6 +22,8 @@ dependencies:
   # firebase_admin: ^0.1.0-dev.1 # Commented out due to null safety incompatibility
   dart_pdf_reader: ^0.5.1
   intl: ^0.19.0
+  shared:
+    path: ../shared
 
 dev_dependencies:
   lints: ^2.0.0

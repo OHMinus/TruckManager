@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:truck_manager/services/asset_loader.dart';
-import 'package:truck_manager/services/capsules.dart';
+import 'package:shared/capsules.dart';
 import 'package:truck_manager/services/download.dart';
 import 'package:path/path.dart' as path;
 

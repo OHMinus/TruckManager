@@ -1,1 +1,1 @@
-{"version":2,"entries":[{"package":"truck_manager","rootUri":"../","packageUri":"lib/"}]}
+{"version":2,"entries":[{"package":"shared","rootUri":"../../shared/","packageUri":"lib/"},{"package":"truck_manager","rootUri":"../","packageUri":"lib/"}]}
