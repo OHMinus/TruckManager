@@ -77,6 +77,9 @@ class DetailPage extends StatelessWidget {
           final String carImageUrl = carType != null ? _getCarImageUrl(carType) : '';
           final bool isSemiMedium = carType != null && carType.contains('2t');
 
+          final imageUrl = rawData['imageUrl'] as String?;
+
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -148,8 +151,27 @@ class DetailPage extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                if (imageUrl != null && imageUrl.isNotEmpty) ...[
+                  ElevatedButton(
+                    onPressed: () async {
+                      final Uri url = Uri.parse(imageUrl);
+                      if (!await launchUrl(url)) {
+                        throw Exception('Could not launch $imageUrl');
+                      }
 
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('請求書データを閲覧', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                const SizedBox(height: 12),
                 Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
